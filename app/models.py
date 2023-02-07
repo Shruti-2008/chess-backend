@@ -5,7 +5,7 @@ from .database import Base
 from sqlalchemy import Column, Integer, String, BOOLEAN, ForeignKey, SmallInteger, ARRAY
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, query_expression, Mapped
 
 class User(Base):
     __tablename__ = "users"
@@ -36,8 +36,8 @@ class Game(Base):
     __tablename__ = "games"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    white_player = Column(Integer, ForeignKey(User.id), nullable=False)
-    black_player = Column(Integer, ForeignKey(User.id), nullable=False)
+    white_player_id = Column(Integer, ForeignKey(User.id), nullable=False)
+    black_player_id = Column(Integer, ForeignKey(User.id), nullable=False)
     board = Column(String, nullable=False, server_default="rnbqkbnr#pppppppp#8#8#8#8#PPPPPPPP#RNBQKBNR")
     active_player = Column(String, nullable=False, server_default="w")
     last_move_start = Column(ARRAY(Integer))
@@ -51,5 +51,9 @@ class Game(Base):
     winner = Column(String)
     win_reason = Column(String)
     created_at =  Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    no_of_moves : Mapped[Integer] = query_expression()
+    
+    white_player = relationship("User", foreign_keys='Game.white_player_id')
+    black_player = relationship("User", foreign_keys='Game.black_player_id')
 
 
