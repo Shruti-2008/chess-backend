@@ -46,3 +46,11 @@ class Game(BaseModel):
     class Config:
         orm_mode = True
 
+class UserStats(BaseModel):
+    result: str
+    count: int
+    
+    class Config:
+        orm_mode = True
+
+

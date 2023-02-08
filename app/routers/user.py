@@ -1,7 +1,9 @@
+from operator import and_, or_
 from app import oauth2
 from .. import models, schemas, utils
 from ..database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import case, or_, and_, func
 from fastapi import Depends, status, HTTPException, APIRouter
 from app import oauth2
 from typing import List
@@ -27,14 +29,21 @@ def create_user(user: schemas.UserCreate, db:Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.get("/{id}", response_model=schemas.UserOut)
+@router.get("/{id}", response_model=List[schemas.UserStats]) #response_model=schemas.UserOut
 def get_user(id: int, db:Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    user = db.query(models.User).filter(models.User.id == id).first()
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {id} does not exist")
+    # user = db.query(models.User).filter(models.User.id == id).first()
+    # if not user:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {id} does not exist")
     
-    return user
+    if id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"You are unauthorized to view this data")
+
+    stats = db.query(case(
+        (models.Game.winner == 't', 'tie'),
+        (or_(and_(models.Game.winner == 'w', models.Game.white_player_id == current_user.id),and_(models.Game.winner == 'b', models.Game.black_player_id == current_user.id)), 'won'),
+        else_='lost'
+    ).label('result'), func.count().label('count')).filter(or_(models.Game.black_player_id ==  current_user.id, models.Game.white_player_id == current_user.id)).group_by('result').all()
+    return stats
 
 @router.get("/", response_model=List[schemas.UserOut])
 def get_all_users(db:Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
