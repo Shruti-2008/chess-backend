@@ -40,8 +40,8 @@ class Game(Base):
     black_player_id = Column(Integer, ForeignKey(User.id), nullable=False)
     board = Column(String, nullable=False, server_default="rnbqkbnr#pppppppp#8#8#8#8#PPPPPPPP#RNBQKBNR")
     active_player = Column(String, nullable=False, server_default="w")
-    last_move_start = Column(ARRAY(Integer))
-    last_move_end = Column(ARRAY(Integer))
+    last_move_start = Column(ARRAY(Integer), server_default="{}")
+    last_move_end = Column(ARRAY(Integer), server_default="{}")
     move_history = Column(ARRAY(String), nullable=False, server_default="{}")
     white_king_pos = Column(ARRAY(Integer), server_default="{0,4}")
     black_king_pos = Column(ARRAY(Integer), server_default="{7,4}")
@@ -55,5 +55,5 @@ class Game(Base):
     
     white_player = relationship("User", foreign_keys='Game.white_player_id')
     black_player = relationship("User", foreign_keys='Game.black_player_id')
-
+    captures = relationship("Capture", foreign_keys='Game.capture_id')
 

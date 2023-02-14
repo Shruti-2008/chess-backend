@@ -26,11 +26,11 @@ def get_db():
         db.close()
 
 
-while True:
-    try:
-        conn = psycopg2.connect(host='localhost', database='chess', user='postgres', password='postgres', cursor_factory=RealDictCursor)
-        cursor = conn.cursor()
-        break
-    except Exception as error:
-        print(error)
-        time.sleep(2)
+# while True:
+#     try:
+#         conn = psycopg2.connect(host='localhost', database='chess', user='postgres', password='postgres', cursor_factory=RealDictCursor)
+#         cursor = conn.cursor()
+#         break
+#     except Exception as error:
+#         print(error)
+#         time.sleep(2)
