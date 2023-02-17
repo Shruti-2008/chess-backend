@@ -20,11 +20,19 @@ class UserOut(BaseModel):
         orm_mode = True
 
 class Token(BaseModel):
-    access_token: str
     token_type: str
+    access_token: str
 
 class TokenData(BaseModel):
     id: Optional[str]
+
+class RefreshTokenIn(BaseModel):
+    refresh_token: str
+
+class TokenOut(BaseModel):
+    token_type: str
+    access_token: str
+    refresh_token: str
 
 class UserStats(BaseModel):
     result: str
@@ -88,10 +96,12 @@ class GameMoveIn(BaseModel):
     move_history : List[str]    # can we change it to jut str in GameIn?
     white_king_pos : List[int]  # either or . both white and black not required no?
     black_king_pos : List[int]
+    enpassant_position: List[int]
     castle_eligibility : List[bool] # again just white or black, both not required
+    checked_king : Optional[str]
     is_concluded : bool
     winner : Optional[str]      # can be changed to int maybe
-    win_reason : Optional[str]
+    end_reason : Optional[str]
     captures: CaptureIn         # just white or black not both
 
 
@@ -105,10 +115,12 @@ class GameMoveOut(BaseModel):
     move_history : List[str] # str
     white_king_pos : List[int] #either or
     black_king_pos : List[int]
+    enpassant_position: List[int]
     castle_eligibility : List[bool] #either or
+    checked_king : Optional[str]
     is_concluded : bool
     winner : Optional[str] #int
-    win_reason : Optional[str]
+    end_reason : Optional[str]
     Capture: CaptureIn #either or
 
     class Config:

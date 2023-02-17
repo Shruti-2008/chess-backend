@@ -49,11 +49,18 @@ class Game(Base):
     capture_id = Column(Integer, ForeignKey(Capture.id), nullable=False, unique=True)
     is_concluded = Column(BOOLEAN, nullable=False, server_default='FALSE')
     winner = Column(String)
-    win_reason = Column(String)
+    end_reason = Column(Integer)
     created_at =  Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
-    no_of_moves : Mapped[Integer] = query_expression()
+    # no_of_moves : Mapped[Integer] = query_expression()
+    checked_king = Column(String)
+    enpassant_position = Column(ARRAY(Integer), server_default="{}")
     
     white_player = relationship("User", foreign_keys='Game.white_player_id')
     black_player = relationship("User", foreign_keys='Game.black_player_id')
     captures = relationship("Capture", foreign_keys='Game.capture_id')
 
+class Tokens(Base):
+    __tablename__ = "tokens"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    refresh = Column(String, unique=True, nullable=False)

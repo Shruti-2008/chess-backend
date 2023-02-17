@@ -64,6 +64,7 @@ class ConnectionManager:
                 self.active_connections.pop(game_id)
 
     async def send_move(self, move: str, game_id: int, user_id: int,  data: schemas.GameMoveIn, db: Session):
+        print("Sending data to opponent")
         # change player_color before sending response #do we even need to send player_color?
         data['player_color'] = "b" if data['player_color'] == "w" else "w"
         # more than 1 player is connected to the game
@@ -84,13 +85,14 @@ manager = ConnectionManager()
 
 
 def update_move_in_db(data: schemas.GameMoveIn, db: Session, user_id: int):
+    print("Updating db ", data)
     try:
-        game = (
+        game: models.Game = (
             db.query(models.Game)
             .filter(models.Game.id == data['id'])
             .first()
         )
-        capture = (
+        capture: models.Capture = (
             db.query(models.Capture)
             .filter(models.Capture.id == game.capture_id)
             .first()
@@ -110,10 +112,12 @@ def update_move_in_db(data: schemas.GameMoveIn, db: Session, user_id: int):
         game.move_history = data['move_history']
         game.white_king_pos = data['white_king_pos']
         game.black_king_pos = data['black_king_pos']
+        game.enpassant_position = data['enpassant_position']
         game.castle_eligibility = data['castle_eligibility']
+        game.checked_king = data['checked_king']
         game.is_concluded = data['is_concluded']
         game.winner = data['winner']
-        game.win_reason = data['win_reason']
+        game.end_reason = data['end_reason']
 
         capture.p = data['Capture']['p']
         capture.r = data['Capture']['r']
@@ -142,7 +146,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: int, current_user: i
     try:
         while True:
             data = await websocket.receive_json()
-            # print("Recieved data", data)
+            print("Recieved data", data)
             await manager.send_move(data, game_id, current_user.id, data, db)
     except WebSocketDisconnect:
         manager.disconnect(game_id, current_user.id)
