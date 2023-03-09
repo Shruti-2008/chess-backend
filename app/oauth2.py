@@ -49,9 +49,11 @@ def verify_access_token(token: str, credentials_exception):
 
 def verify_refresh_token(token:str, credentials_exception):
     try:
+        print("RToken = ", token)
         payload = jwt.decode(token, REFRESH_SECRET_KEY, ALGORITHM)
+        print("payload = ", payload)
         id: str = payload.get("user_id")
-        
+        print("id = ", id)
         if id is None:
             raise credentials_exception
         token_data = schemas.TokenData(id=id)
@@ -82,7 +84,7 @@ def get_socket_user(token: str, db: Session = Depends(get_db)):
 
 def get_refresh_user(token: str, db:Session = Depends(get_db)):
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, 
+        status_code=status.HTTP_403_FORBIDDEN, 
         detail='Could not validate credentials', headers={"WWW-Authenticate":"Bearer"}
     )
     token_data = verify_refresh_token(token, credentials_exception)

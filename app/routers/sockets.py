@@ -63,15 +63,17 @@ class ConnectionManager:
             if self.active_connections[game_id] == {}:
                 self.active_connections.pop(game_id)
 
-    async def send_move(self, move: str, game_id: int, user_id: int,  data: schemas.GameMoveIn, db: Session):
-        print("Sending data to opponent")
+    async def send_move(self, game_id: int, user_id: int,  data: schemas.GameMoveIn, db: Session):
         # change player_color before sending response #do we even need to send player_color?
         data['player_color'] = "b" if data['player_color'] == "w" else "w"
         # more than 1 player is connected to the game
         if len(self.active_connections[game_id]) > 1:
+            print("active connections > 1")
             for user in self.active_connections[game_id]:
                 if user != user_id:
-                    await self.active_connections[game_id][user].send_json(move)
+                    await self.active_connections[game_id][user].send_json(data)
+                    print("Sent move to user : ", user, " websocket = ",
+                          self.active_connections[game_id][user])
         update_move_in_db(data, db, user_id)
 
 # print(f"joined room for game {game_id} for user {user_id}")
@@ -85,7 +87,6 @@ manager = ConnectionManager()
 
 
 def update_move_in_db(data: schemas.GameMoveIn, db: Session, user_id: int):
-    print("Updating db ", data)
     try:
         game: models.Game = (
             db.query(models.Game)
@@ -100,16 +101,17 @@ def update_move_in_db(data: schemas.GameMoveIn, db: Session, user_id: int):
 
         if not game:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Game with id {id} does not exist")
+                                detail=f"Game with id {id} does not exist")
         if user_id not in (game.white_player_id, game.black_player_id):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail=f"You are not authorized to update game with id {id}")
-        
+                                detail=f"You are not authorized to update game with id {id}")
+
         game.board = data['board']
         game.active_player = data['active_player']
         game.last_move_start = data['last_move_start']
         game.last_move_end = data['last_move_end']
         game.move_history = data['move_history']
+        game.steps = data['steps']
         game.white_king_pos = data['white_king_pos']
         game.black_king_pos = data['black_king_pos']
         game.enpassant_position = data['enpassant_position']
@@ -118,6 +120,7 @@ def update_move_in_db(data: schemas.GameMoveIn, db: Session, user_id: int):
         game.is_concluded = data['is_concluded']
         game.winner = data['winner']
         game.end_reason = data['end_reason']
+        game.draw = data['draw']
 
         capture.p = data['Capture']['p']
         capture.r = data['Capture']['r']
@@ -146,8 +149,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: int, current_user: i
     try:
         while True:
             data = await websocket.receive_json()
-            print("Recieved data", data)
-            await manager.send_move(data, game_id, current_user.id, data, db)
+            print("recieved data from ", current_user.id)
+            await manager.send_move(game_id, current_user.id, data, db)
     except WebSocketDisconnect:
         manager.disconnect(game_id, current_user.id)
         # print(f"User with id {current_user.id} disconnected from game")
