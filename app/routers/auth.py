@@ -8,7 +8,6 @@ router = APIRouter(tags=["Authentication"])
 
 
 @router.post("/login", response_model=schemas.TokenOut)
-# def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(
         models.User.email == user_credentials.username).first()
@@ -43,9 +42,11 @@ def refresh(payload: schemas.RefreshTokenIn, db: Session = Depends(get_db)):
                 user = oauth2.get_refresh_user(token.refresh, db)
 
             except HTTPException as error:
+                # delete the refresh token if the refresh token has expired and raise error
                 query.delete()
                 db.commit()
                 raise error
+            # create and return the access token
             access_token = oauth2.create_access_token(
                 data={"user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -53,6 +54,7 @@ def refresh(payload: schemas.RefreshTokenIn, db: Session = Depends(get_db)):
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(payload: schemas.RefreshTokenIn, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    # delete refresh token when user logs out
     if payload.refresh_token and current_user.id:
         db.query(models.Tokens).filter(
             models.Tokens.refresh == payload.refresh_token).delete()

@@ -18,34 +18,41 @@ router = APIRouter(
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.TokenOut)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    try:
+        # check if user already exists
+        existing_user = db.query(models.User).filter(
+            models.User.email == user.email).first()
+        if (existing_user):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail=f"User with email {user.email} already exists")
+        # hash the password
+        hashed_password = utils.hash(user.password)
+        user.password = hashed_password
 
-    # check if user already exists
-    existing_user = db.query(models.User).filter(
-        models.User.email == user.email).first()
-    if (existing_user):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail=f"User with email {user.email} already exists")
-    # hash the password
-    hashed_password = utils.hash(user.password)
-    user.password = hashed_password
+        new_user = models.User(**user.dict())
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    new_user = models.User(**user.dict())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+        access_token = oauth2.create_access_token(
+            data={"user_id": new_user.id})
+        refresh_token = oauth2.create_refresh_token(
+            data={"user_id": new_user.id})
 
-    access_token = oauth2.create_access_token(data={"user_id": new_user.id})
-    refresh_token = oauth2.create_refresh_token(data={"user_id": new_user.id})
+        token = models.Tokens()
+        token.refresh = refresh_token
+        db.add(token)
+        db.commit()
 
-    token = models.Tokens()
-    token.refresh = refresh_token
-    db.add(token)
-    db.commit()
-
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
-
+        return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    except SQLAlchemyError as e:
+        error = str(e.orig)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
 # return user stats
+
+
 @router.get("/stats", response_model=List[schemas.UserStats])
 def get_user(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:

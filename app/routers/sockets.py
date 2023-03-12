@@ -9,44 +9,6 @@ from ..database import get_db
 
 router = APIRouter()
 
-# @router.websocket("/ws")
-# async def websocket_endpoint(webSocket: WebSocket, current_user: int = Depends(oauth2.get_socket_user)):
-#     print("Hit websocket endpoint inside socket file")
-#     print(current_user.id)
-#     await webSocket.accept()
-#     try:
-#         while True:
-#             data = await webSocket.receive_text()
-#             print(data)
-#             await webSocket.send_text(f"Message text was {data}")
-#     except WebSocketDisconnect:
-#         print("Disconnected Websocket. The end")
-#     except Exception as e:
-#         print("error is ", e)
-#         webSocket.close()
-
-
-class ConnectionManager_v0:
-    def __init__(self):
-        self.active_connections = defaultdict(list[WebSocket])
-
-    async def connect(self, websocket: WebSocket, game_id: int, user_id: int):
-        await websocket.accept()
-        self.active_connections[game_id].append(websocket)
-
-    def disconnect(self, websocket: WebSocket, game_id: int):
-        self.active_connections[game_id].remove(websocket)
-        if self.active_connections[game_id] == []:
-            self.active_connections.pop(game_id)
-
-    async def send_move(self, move: str, websocket: WebSocket, game_id: int, data: schemas.GameMoveIn, db: Session):
-        data['player_color'] = "b" if data['player_color'] == "w" else "w"
-        if len(self.active_connections[game_id]) >= 2:
-            for socket in self.active_connections[game_id]:
-                if socket != websocket:
-                    await socket.send_json(move)
-        update_move_in_db(data, db)
-
 
 class ConnectionManager:
 
@@ -64,23 +26,14 @@ class ConnectionManager:
                 self.active_connections.pop(game_id)
 
     async def send_move(self, game_id: int, user_id: int,  data: schemas.GameMoveIn, db: Session):
-        # change player_color before sending response #do we even need to send player_color?
+        # change player_color before sending response
         data['player_color'] = "b" if data['player_color'] == "w" else "w"
-        # more than 1 player is connected to the game
+        # more than 1 player is connected to the game, so send move to the other player
         if len(self.active_connections[game_id]) > 1:
-            print("active connections > 1")
             for user in self.active_connections[game_id]:
                 if user != user_id:
                     await self.active_connections[game_id][user].send_json(data)
-                    print("Sent move to user : ", user, " websocket = ",
-                          self.active_connections[game_id][user])
         update_move_in_db(data, db, user_id)
-
-# print(f"joined room for game {game_id} for user {user_id}")
-# print(f"game room for game {game_id} : ", self.active_connections[game_id])
-# if self.active_connections[game_id] == {}: #[]
-#     print(f"creating room for game {game_id} for user {user_id}")
-# print("Closing connection", game_id, user_id)
 
 
 manager = ConnectionManager()
@@ -149,8 +102,49 @@ async def websocket_endpoint(websocket: WebSocket, game_id: int, current_user: i
     try:
         while True:
             data = await websocket.receive_json()
-            print("recieved data from ", current_user.id)
             await manager.send_move(game_id, current_user.id, data, db)
     except WebSocketDisconnect:
         manager.disconnect(game_id, current_user.id)
-        # print(f"User with id {current_user.id} disconnected from game")
+
+
+# region -------- Old versions --------
+
+# @router.websocket("/ws")
+# async def websocket_endpoint(webSocket: WebSocket, current_user: int = Depends(oauth2.get_socket_user)):
+#     print("Hit websocket endpoint inside socket file")
+#     print(current_user.id)
+#     await webSocket.accept()
+#     try:
+#         while True:
+#             data = await webSocket.receive_text()
+#             print(data)
+#             await webSocket.send_text(f"Message text was {data}")
+#     except WebSocketDisconnect:
+#         print("Disconnected Websocket. The end")
+#     except Exception as e:
+#         print("error is ", e)
+#         webSocket.close()
+
+
+# class ConnectionManager_v0:
+#     def __init__(self):
+#         self.active_connections = defaultdict(list[WebSocket])
+
+#     async def connect(self, websocket: WebSocket, game_id: int, user_id: int):
+#         await websocket.accept()
+#         self.active_connections[game_id].append(websocket)
+
+#     def disconnect(self, websocket: WebSocket, game_id: int):
+#         self.active_connections[game_id].remove(websocket)
+#         if self.active_connections[game_id] == []:
+#             self.active_connections.pop(game_id)
+
+#     async def send_move(self, move: str, websocket: WebSocket, game_id: int, data: schemas.GameMoveIn, db: Session):
+#         data['player_color'] = "b" if data['player_color'] == "w" else "w"
+#         if len(self.active_connections[game_id]) >= 2:
+#             for socket in self.active_connections[game_id]:
+#                 if socket != websocket:
+#                     await socket.send_json(move)
+#         update_move_in_db(data, db)
+
+# endregion

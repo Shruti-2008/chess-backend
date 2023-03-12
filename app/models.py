@@ -1,7 +1,3 @@
-from ctypes.wintypes import BOOL
-from enum import unique
-from multiprocessing.dummy import Array
-from xmlrpc.client import Boolean
 from .database import Base
 from sqlalchemy import Column, Integer, String, BOOLEAN, ForeignKey, SmallInteger, ARRAY
 from sqlalchemy.sql.sqltypes import TIMESTAMP
@@ -51,19 +47,22 @@ class Game(Base):
     move_history = Column(ARRAY(String), nullable=False, server_default="{}")
     white_king_pos = Column(ARRAY(Integer), server_default="{0,4}")
     black_king_pos = Column(ARRAY(Integer), server_default="{7,4}")
+    # white queenside, white kingside, black queenside, black kingside
     castle_eligibility = Column(
         ARRAY(BOOLEAN), server_default="{TRUE,TRUE,TRUE,TRUE}")
     capture_id = Column(Integer, ForeignKey(Capture.id),
                         nullable=False, unique=True)
     is_concluded = Column(BOOLEAN, nullable=False, server_default='FALSE')
+    # 1-> White #2->Black #3->Draw
     winner = Column(Integer)
+    # 1-> Checkmate #2-> StaleMate #3-> Resignation #4->Agreement
     end_reason = Column(Integer)
     created_at = Column(TIMESTAMP(timezone=True),
                         nullable=False, server_default=text('now()'))
     # no_of_moves : Mapped[Integer] = query_expression()
     checked_king = Column(String)
     enpassant_position = Column(ARRAY(Integer), server_default="{}")
-    # 1-> White offered draw #2->Black offered draw #3-> White rejected draw #4-> Black rejected draw
+    # 1-> White offered draw #2->Black offered draw #3-> White rejected draw #4-> Black rejected draw #5-> White accepted draw #6 -> Black accepted draw
     draw = Column(Integer)
     steps = Column(ARRAY(String), nullable=False, server_default="{}")
 
@@ -77,3 +76,5 @@ class Tokens(Base):
 
     id = Column(Integer, primary_key=True, nullable=False)
     refresh = Column(String, unique=True, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True),
+                        nullable=False, server_default=text('now()'))

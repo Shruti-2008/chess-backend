@@ -66,6 +66,8 @@ class CaptureIn(BaseModel):
     class Config:
         orm_mode = True
 
+# same as user. can be deleted
+
 
 class Player(BaseModel):
     id: int
@@ -80,11 +82,11 @@ class Game(BaseModel):
     winner: int
     white_player: EmailStr
     black_player: EmailStr
+    end_reason: int
 
 
 class GameOverview(Game):
     no_of_moves: Optional[int]
-    end_reason: int
     created_at: datetime
 
     class Config:
@@ -93,10 +95,6 @@ class GameOverview(Game):
 
 class GameDetails(Game):
     board: str
-    white_player: str
-    black_player: str
-    winner: int
-    end_reason: int
     checked_king: Optional[str]
     last_move_start: List[int] = None
     last_move_end: List[int] = None
@@ -117,44 +115,42 @@ class GameMoveIn(BaseModel):
     id: int
     board: str
     player_color: str
-    active_player: str         # can we change it to int? is it even required in GameIn?
+    active_player: str
     last_move_start: List[int]
     last_move_end: List[int]
-    move_history: List[str]    # can we change it to jut str in GameIn?
+    move_history: List[str]
     steps: List[str]
-    # either or . both white and black not required no?
     white_king_pos: List[int]
     black_king_pos: List[int]
     enpassant_position: List[int]
-    # again just white or black, both not required
     castle_eligibility: List[bool]
     checked_king: Optional[str]
     is_concluded: bool
-    winner: Optional[int]      # can be changed to int maybe
+    winner: Optional[int]
     end_reason: Optional[int]
     draw: Optional[int]
-    captures: CaptureIn         # just white or black not both
+    Capture: CaptureIn
 
 
 class GameMoveOut(BaseModel):
     id: int
     board: str
     player_color: str
-    active_player: str  # int
-    last_move_start: Optional[List[int]]  # = None
-    last_move_end: Optional[List[int]]  # = None
-    move_history: List[str]  # str
+    active_player: str
+    last_move_start: Optional[List[int]]
+    last_move_end: Optional[List[int]]
+    move_history: List[str]
     steps: List[str]
-    white_king_pos: List[int]  # either or
+    white_king_pos: List[int]
     black_king_pos: List[int]
     enpassant_position: List[int]
-    castle_eligibility: List[bool]  # either or
+    castle_eligibility: List[bool]
     checked_king: Optional[str]
     is_concluded: bool
-    winner: Optional[int]  # int
+    winner: Optional[int]
     end_reason: Optional[int]
     draw: Optional[int]
-    Capture: CaptureIn  # either or
+    Capture: CaptureIn
 
     class Config:
         orm_mode = True
